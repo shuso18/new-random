@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Event Countdown</title>
+  <style>
+    :root {
+      --bg-start: #0f172a;
+      --bg-end: #1e293b;
+      --panel: rgba(15, 23, 42, 0.78);
+      --accent: #f97316;
+      --accent-soft: #fdba74;
+      --text: #f8fafc;
+      --muted: #cbd5e1;
+      --border: rgba(148, 163, 184, 0.22);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top, rgba(249, 115, 22, 0.22), transparent 30%),
+        linear-gradient(145deg, var(--bg-start), var(--bg-end));
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+
+    .countdown-app {
+      width: min(100%, 860px);
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 32px;
+      box-shadow: 0 24px 60px rgba(15, 23, 42, 0.35);
+      backdrop-filter: blur(10px);
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: clamp(2rem, 4vw, 3.25rem);
+      line-height: 1;
+    }
+
+    .subtitle {
+      margin: 0 0 28px;
+      color: var(--muted);
+      font-size: 1rem;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr auto;
+      gap: 14px;
+      margin-bottom: 26px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    label {
+      font-size: 0.92rem;
+      color: var(--accent-soft);
+    }
+
+    input,
+    button {
+      border: 0;
+      border-radius: 14px;
+      padding: 15px 16px;
+      font: inherit;
+    }
+
+    input {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text);
+      outline: 1px solid transparent;
+    }
+
+    input:focus {
+      outline-color: var(--accent);
+    }
+
+    button {
+      align-self: end;
+      background: linear-gradient(135deg, var(--accent), #ea580c);
+      color: white;
+      cursor: pointer;
+      font-weight: 700;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 12px 24px rgba(249, 115, 22, 0.25);
+    }
+
+    .status {
+      min-height: 24px;
+      margin-bottom: 24px;
+      color: var(--muted);
+    }
+
+    .countdown-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+
+    .list-section {
+      margin-top: 28px;
+      padding-top: 24px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .list-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .list-header h2 {
+      margin: 0;
+      font-size: 1.25rem;
+    }
+
+    .list-header p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .countdown-list {
+      display: grid;
+      gap: 14px;
+    }
+
+    .countdown-item {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto auto;
+      gap: 14px;
+      align-items: center;
+      padding: 18px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .countdown-item.is-active {
+      border-color: rgba(249, 115, 22, 0.45);
+      box-shadow: inset 0 0 0 1px rgba(249, 115, 22, 0.2);
+    }
+
+    .countdown-item h3,
+    .countdown-item p {
+      margin: 0;
+    }
+
+    .countdown-item h3 {
+      font-size: 1.05rem;
+      margin-bottom: 6px;
+    }
+
+    .countdown-item p {
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .mini-time {
+      font-weight: 700;
+      color: var(--accent-soft);
+      white-space: nowrap;
+    }
+
+    .item-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .ghost-btn {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text);
+      padding: 12px 14px;
+    }
+
+    .ghost-btn.delete-btn {
+      background: rgba(239, 68, 68, 0.14);
+      color: #fecaca;
+    }
+
+    .empty-state {
+      padding: 18px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .time-card {
+      padding: 22px 16px;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      text-align: center;
+    }
+
+    .time-value {
+      display: block;
+      font-size: clamp(2rem, 5vw, 3.4rem);
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+
+    .time-label {
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      font-size: 0.8rem;
+    }
+
+    @media (max-width: 760px) {
+      .countdown-app {
+        padding: 22px;
+      }
+
+      .controls {
+        grid-template-columns: 1fr;
+      }
+
+      .countdown-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .countdown-item {
+        grid-template-columns: 1fr;
+      }
+
+      .item-actions {
+        width: 100%;
+      }
+
+      .ghost-btn {
+        flex: 1;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="countdown-app">
+    <h1>Countdown to Your Event</h1>
+    <p class="subtitle">Choose an event name and date, then start a live countdown from the current moment.</p>
+
+    <section class="controls">
+      <div class="field">
+        <label for="event-name">Event Name</label>
+        <input id="event-name" type="text" placeholder="Birthday, trip, launch...">
+      </div>
+      <div class="field">
+        <label for="event-date">Event Date</label>
+        <input id="event-date" type="date">
+      </div>
+      <button id="start-btn" type="button">Start Countdown</button>
+    </section>
+
+    <p id="status" class="status">Pick a date to begin.</p>
+
+    <section class="countdown-grid" aria-live="polite">
+      <article class="time-card">
+        <span id="days" class="time-value">00</span>
+        <span class="time-label">Days</span>
+      </article>
+      <article class="time-card">
+        <span id="hours" class="time-value">00</span>
+        <span class="time-label">Hours</span>
+      </article>
+      <article class="time-card">
+        <span id="minutes" class="time-value">00</span>
+        <span class="time-label">Minutes</span>
+      </article>
+      <article class="time-card">
+        <span id="seconds" class="time-value">00</span>
+        <span class="time-label">Seconds</span>
+      </article>
+    </section>
+
+    <section class="list-section">
+      <div class="list-header">
+        <div>
+          <h2>Your Countdown List</h2>
+          <p>All saved countdowns keep running in this browser.</p>
+        </div>
+      </div>
+      <div id="countdown-list" class="countdown-list"></div>
+    </section>
+  </main>
+
+  <script>
+    const eventNameInput = document.getElementById("event-name");
+    const eventDateInput = document.getElementById("event-date");
+    const startButton = document.getElementById("start-btn");
+    const status = document.getElementById("status");
+    const countdownListEl = document.getElementById("countdown-list");
+    const daysEl = document.getElementById("days");
+    const hoursEl = document.getElementById("hours");
+    const minutesEl = document.getElementById("minutes");
+    const secondsEl = document.getElementById("seconds");
+    const STORAGE_KEY = "countdownEvents";
+
+    let refreshTimer = null;
+    let activeCountdownId = null;
+    let editingCountdownId = null;
+
+    function pad(value) {
+      return String(value).padStart(2, "0");
+    }
+
+    function setCountdownValues(days, hours, minutes, seconds) {
+      daysEl.textContent = pad(days);
+      hoursEl.textContent = pad(hours);
+      minutesEl.textContent = pad(minutes);
+      secondsEl.textContent = pad(seconds);
+    }
+
+    function getCountdowns() {
+      const savedCountdowns = localStorage.getItem(STORAGE_KEY);
+      return savedCountdowns ? JSON.parse(savedCountdowns) : [];
+    }
+
+    function saveCountdowns(countdowns) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(countdowns));
+    }
+
+    function formatEventDate(date) {
+      return new Date(date + "T00:00:00").toLocaleDateString(undefined, {
+        year: "numeric",
+        month: "long",
+        day: "numeric"
+      });
+    }
+
+    function getTimeLeft(targetDate) {
+      const difference = targetDate - new Date();
+
+      if (difference <= 0) {
+        return null;
+      }
+
+      const totalSeconds = Math.floor(difference / 1000);
+      return {
+        totalSeconds,
+        days: Math.floor(totalSeconds / 86400),
+        hours: Math.floor((totalSeconds % 86400) / 3600),
+        minutes: Math.floor((totalSeconds % 3600) / 60),
+        seconds: totalSeconds % 60
+      };
+    }
+
+    function resetForm() {
+      eventNameInput.value = "";
+      eventDateInput.value = "";
+      editingCountdownId = null;
+      startButton.textContent = "Start Countdown";
+    }
+
+    function removeExpiredCountdowns() {
+      const countdowns = getCountdowns();
+      const activeCountdowns = countdowns.filter((countdown) => getTimeLeft(new Date(countdown.date + "T00:00:00")));
+
+      if (activeCountdowns.length !== countdowns.length) {
+        saveCountdowns(activeCountdowns);
+      }
+
+      if (activeCountdownId && !activeCountdowns.some((countdown) => countdown.id === activeCountdownId)) {
+        activeCountdownId = activeCountdowns[0] ? activeCountdowns[0].id : null;
+      }
+
+      return activeCountdowns;
+    }
+
+    function renderCountdownList() {
+      const countdowns = removeExpiredCountdowns();
+
+      if (!countdowns.length) {
+        countdownListEl.innerHTML = '<div class="empty-state">No countdowns yet. Create one above.</div>';
+        return;
+      }
+
+      countdownListEl.innerHTML = countdowns.map((countdown) => {
+        const timeLeft = getTimeLeft(new Date(countdown.date + "T00:00:00"));
+        const timeText = timeLeft
+          ? pad(timeLeft.days) + "d " + pad(timeLeft.hours) + "h " + pad(timeLeft.minutes) + "m " + pad(timeLeft.seconds) + "s"
+          : "Finished";
+
+        return `
+          <article class="countdown-item ${countdown.id === activeCountdownId ? "is-active" : ""}">
+            <div>
+              <h3>${countdown.name}</h3>
+              <p>Event date: ${formatEventDate(countdown.date)}</p>
+            </div>
+            <div class="mini-time">${timeText}</div>
+            <div class="item-actions">
+              <button class="ghost-btn edit-btn" type="button" data-id="${countdown.id}">Modify</button>
+              <button class="ghost-btn delete-btn" type="button" data-id="${countdown.id}">Delete</button>
+            </div>
+          </article>
+        `;
+      }).join("");
+    }
+
+    function showActiveCountdown() {
+      const countdowns = removeExpiredCountdowns();
+      const activeCountdown = countdowns.find((countdown) => countdown.id === activeCountdownId) || countdowns[0];
+
+      if (!activeCountdown) {
+        setCountdownValues(0, 0, 0, 0);
+        status.textContent = "Pick a date to begin.";
+        return;
+      }
+
+      activeCountdownId = activeCountdown.id;
+      const timeLeft = getTimeLeft(new Date(activeCountdown.date + "T00:00:00"));
+
+      if (!timeLeft) {
+        renderCountdownList();
+        showActiveCountdown();
+        return;
+      }
+
+      setCountdownValues(timeLeft.days, timeLeft.hours, timeLeft.minutes, timeLeft.seconds);
+      status.textContent = "Countdown to " + activeCountdown.name + " from now.";
+    }
+
+    startButton.addEventListener("click", () => {
+      const selectedDate = eventDateInput.value;
+      const eventLabel = eventNameInput.value.trim() || "your event";
+
+      if (!selectedDate) {
+        status.textContent = "Select an event date first.";
+        setCountdownValues(0, 0, 0, 0);
+        return;
+      }
+
+      const countdowns = getCountdowns();
+
+      if (editingCountdownId) {
+        const updatedCountdowns = countdowns.map((countdown) =>
+          countdown.id === editingCountdownId
+            ? { ...countdown, name: eventLabel, date: selectedDate }
+            : countdown
+        );
+        saveCountdowns(updatedCountdowns);
+        activeCountdownId = editingCountdownId;
+      } else {
+        const newCountdown = {
+          id: Date.now().toString(),
+          name: eventLabel,
+          date: selectedDate
+        };
+        countdowns.push(newCountdown);
+        saveCountdowns(countdowns);
+        activeCountdownId = newCountdown.id;
+      }
+
+      resetForm();
+      renderCountdownList();
+      showActiveCountdown();
+    });
+
+    countdownListEl.addEventListener("click", (event) => {
+      const button = event.target.closest("button");
+      if (!button) {
+        return;
+      }
+
+      const countdownId = button.dataset.id;
+      const countdowns = getCountdowns();
+      const selectedCountdown = countdowns.find((countdown) => countdown.id === countdownId);
+
+      if (button.classList.contains("delete-btn")) {
+        const updatedCountdowns = countdowns.filter((countdown) => countdown.id !== countdownId);
+        saveCountdowns(updatedCountdowns);
+
+        if (activeCountdownId === countdownId) {
+          activeCountdownId = updatedCountdowns[0] ? updatedCountdowns[0].id : null;
+        }
+
+        if (editingCountdownId === countdownId) {
+          resetForm();
+        }
+
+        renderCountdownList();
+        showActiveCountdown();
+        return;
+      }
+
+      if (button.classList.contains("edit-btn") && selectedCountdown) {
+        eventNameInput.value = selectedCountdown.name === "your event" ? "" : selectedCountdown.name;
+        eventDateInput.value = selectedCountdown.date;
+        editingCountdownId = selectedCountdown.id;
+        activeCountdownId = selectedCountdown.id;
+        startButton.textContent = "Update Countdown";
+        renderCountdownList();
+        showActiveCountdown();
+      }
+    });
+
+    eventDateInput.min = new Date().toISOString().split("T")[0];
+    renderCountdownList();
+    showActiveCountdown();
+    refreshTimer = setInterval(() => {
+      renderCountdownList();
+      showActiveCountdown();
+    }, 1000);
+  </script>
+</body>
+</html>
